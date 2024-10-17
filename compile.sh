@@ -4,7 +4,10 @@ set -euo pipefail
 
 HERE=$(dirname "$BASH_SOURCE")
 
-FLAGS_STANDARD='-std=c++23'
+COMPILER='gcc'
+
+FLAGS_STANDARD='-std=c99'
+# I'm purposefully using a different std form the library, to make sure that everything's file
 
 FLAGS_STRICT='-Werror -Wextra -Wall -pedantic -Wfatal-errors -Wshadow'
 
@@ -27,8 +30,8 @@ echo
 echo 'Compiling minq-sandbox-2...'
 echo
 
-g++ $FLAGS -o "$HERE/minq-sandbox-2" "$HERE/src/minq-sandbox-2.cpp" "$HERE/libsandbox/libsandbox.a"
+$COMPILER $FLAGS -o "$HERE/minq-sandbox-2" "$HERE/src/minq-sandbox-2.c" "$HERE/libsandbox/libsandbox.a"
 
 echo
-echo 'All done'
+echo 'All compiled'
 echo
