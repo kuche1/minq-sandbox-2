@@ -105,6 +105,8 @@ int main(int argc, char * * argv){
 
         }else if(startswith(arg, ARGP_PATH_ALLOW, ARGP_PATH_ALLOW_LEN)){
             char_arr_append(& arr_path_allow, arg + ARGP_PATH_ALLOW_LEN);
+        }else if(startswith(arg, ARGP_PATH_DENY, ARGP_PATH_DENY_LEN)){
+            char_arr_append(& arr_path_deny, arg + ARGP_PATH_DENY_LEN);
 
         }else{
             printf("unknown argument `%s`\n", arg);
@@ -130,6 +132,10 @@ int main(int argc, char * * argv){
 
     printf("allowed paths: ");
     char_arr_print(& arr_path_allow);
+    printf("\n");
+
+    printf("denied paths: ");
+    char_arr_print(& arr_path_deny);
     printf("\n");
 
     struct libsandbox_rules rules;
