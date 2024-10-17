@@ -3,12 +3,56 @@
 
 #include <stdio.h> // printf
 #include <string.h> // strcmp
+#include <stdlib.h> // relloc
 
 #define ARG_NET_ON "--net-on"
 #define ARG_NET_OFF "--net-off"
 #define ARG_FS_META_ON "--fs-meta-on"
 #define ARG_FS_META_OFF "--fs-meta-off"
 #define ARG_END "--"
+#define ARGP_PATH_ALLOW "-pa:"
+#define ARGP_PATH_DENY "-pd:"
+
+int startswith(char * str, char * prefix, size_t prefix_len){
+    return strncmp(prefix, str, prefix_len) == 0;
+}
+
+//////
+////// char arr
+//////
+
+struct char_arr{
+    char * * data;
+    size_t cap;
+    size_t len;
+};
+
+void char_arr_init(struct char_arr * arr){
+    arr->data = NULL;
+    arr->cap = 0;
+    arr->len = 0;
+}
+
+void char_arr_append(struct char_arr * arr, char * str){
+    if(arr->len + 1 > arr->cap){
+        arr->cap = (arr->len + 1) * 2;
+        arr->data = realloc(arr->data, sizeof(* arr->data) * arr->cap);
+        if(!arr->data){
+            printf("out of memory\n");
+            exit(1);
+        }
+    }
+
+    arr->data[arr->len] = str;
+    // TODO we should copy the string rather than just copying the pointer
+    // also, there should be some kind of path processing function in libsandbox
+
+    arr->len += 1;
+}
+
+//////
+////// main
+//////
 
 int main(int argc, char * * argv){
 
@@ -20,6 +64,12 @@ int main(int argc, char * * argv){
 
     int arg_end_set = 0;
     int arg_end_idx = 0;
+
+    struct char_arr arr_path_allow;
+    char_arr_init(& arr_path_allow);
+
+    struct char_arr arr_path_deny;
+    char_arr_init(& arr_path_deny);
 
     for(int arg_idx=1; arg_idx<argc; ++arg_idx){
 
