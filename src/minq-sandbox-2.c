@@ -11,7 +11,9 @@
 #define ARG_FS_META_OFF "--fs-meta-off"
 #define ARG_END "--"
 #define ARGP_PATH_ALLOW "-pa:"
+#define ARGP_PATH_ALLOW_LEN strlen(ARGP_PATH_ALLOW)
 #define ARGP_PATH_DENY "-pd:"
+#define ARGP_PATH_DENY_LEN strlen(ARGP_PATH_DENY)
 
 int startswith(char * str, char * prefix, size_t prefix_len){
     return strncmp(prefix, str, prefix_len) == 0;
@@ -48,6 +50,15 @@ void char_arr_append(struct char_arr * arr, char * str){
     // also, there should be some kind of path processing function in libsandbox
 
     arr->len += 1;
+}
+
+void char_arr_print(struct char_arr * arr){
+    printf("char_arr< ");
+    for(size_t idx=0; idx<arr->len; ++idx){
+        char * str = arr->data[idx];
+        printf("%ld:`%s` ", idx, str);
+    }
+    printf(">");
 }
 
 //////
@@ -91,6 +102,10 @@ int main(int argc, char * * argv){
             arg_end_idx = arg_idx;
             arg_end_set = 1;
             break;
+
+        }else if(startswith(arg, ARGP_PATH_ALLOW, ARGP_PATH_ALLOW_LEN)){
+            char_arr_append(& arr_path_allow, arg + ARGP_PATH_ALLOW_LEN);
+
         }else{
             printf("unknown argument `%s`\n", arg);
             return 1;
@@ -112,6 +127,10 @@ int main(int argc, char * * argv){
         printf("you need signify the end of the cmdline arguments for `%s` and the beginning of the command that is to be executed with `%s`\n", argv[0], ARG_END);
         return 1;
     }
+
+    printf("allowed paths: ");
+    char_arr_print(& arr_path_allow);
+    printf("\n");
 
     struct libsandbox_rules rules;
     libsandbox_rules_init(& rules, 1); // `1` stands for permissive, `0` for non-permissive // TODO make these into constants
