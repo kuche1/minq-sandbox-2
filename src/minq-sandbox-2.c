@@ -15,6 +15,10 @@
 #define ARGP_PATH_DENY "-pd:"
 #define ARGP_PATH_DENY_LEN strlen(ARGP_PATH_DENY)
 
+//////
+////// str related
+//////
+
 int startswith(char * str, char * prefix, size_t prefix_len){
     return strncmp(prefix, str, prefix_len) == 0;
 }
@@ -22,6 +26,7 @@ int startswith(char * str, char * prefix, size_t prefix_len){
 //////
 ////// char arr
 //////
+// TODO should be called str arr
 
 struct char_arr{
     char * * data;
@@ -61,8 +66,20 @@ void char_arr_print(struct char_arr * arr){
     printf(">");
 }
 
+int char_arr_any_startswith(struct char_arr * arr, char * prefix, size_t prefix_len){
+    // TODO I think the function is fine, the problem is
+    // that it doesn't make sense in FS context the way it is
+    for(size_t idx=0; idx<arr->len; ++idx){
+        char * str = arr->data[idx];
+        if(startswith(str, prefix, prefix_len)){
+            return 1;
+        }
+    }
+    return 0;
+}
+
 //////
-////// main
+////// main/related
 //////
 
 int main(int argc, char * * argv){
@@ -173,19 +190,29 @@ int main(int argc, char * * argv){
             }break;
 
             case LIBSANDBOX_RESULT_ACCESS_ATTEMPT_PATH0:{
+
                 printf("attempt to access path `%s`\n", path0);
+
+                // if(char_arr_any_startswith(& arr_path_deny, )){
+
+                // }
+
                 if(libsandbox_syscall_allow(ctx_private)){
                     printf("something went wrong\n");
                     return 1;
                 }
+
             }break;
 
             case LIBSANDBOX_RESULT_ACCESS_ATTEMPT_PATH0_PATH1:{
+
                 printf("attempt to access paths `%s` and `%s`\n", path0, path1);
+
                 if(libsandbox_syscall_allow(ctx_private)){
                     printf("something went wrong\n");
                     return 1;
                 }
+
             }break;
 
         }
