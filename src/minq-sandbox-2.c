@@ -114,7 +114,7 @@ void path_arr_print(struct path_arr * arr){
     printf(">");
 }
 
-int path_arr_parent_contains_child_node(struct path_arr * arr, char * child, size_t child_len){
+int path_arr_contains_child_node(struct path_arr * arr, char * child, size_t child_len){
 
     for(size_t idx=0; idx<arr->len; ++idx){
 
@@ -133,6 +133,11 @@ int path_arr_parent_contains_child_node(struct path_arr * arr, char * child, siz
 //////
 ////// main/related
 //////
+
+int path_is_allowed(__attribute__((unused)) struct path_arr * arr_path_allow, struct path_arr * arr_path_deny, char * path, size_t path_len){
+    // TODO add a flag for default mode (so that `arr_path_allow` is used)
+    return !path_arr_contains_child_node(arr_path_deny, path, path_len);
+}
 
 int main(int argc, char * * argv){
 
@@ -245,16 +250,24 @@ int main(int argc, char * * argv){
 
                 printf("attempt to access path `%s`\n", path0);
 
-                if(path_arr_parent_contains_child_node(& arr_path_deny, path0, strlen(path0))){ // TODO this `strlen` sucks
-                    if(libsandbox_syscall_deny(ctx_private)){
-                        printf("something went wrong\n");
-                        return 1;
-                    }
-                }else{
+                if(path_is_allowed(& arr_path_allow, & arr_path_deny, path0, strlen(path0))){ // TODO this `strlen` sucks
+
+                    printf("allow\n");
+
                     if(libsandbox_syscall_allow(ctx_private)){
                         printf("something went wrong\n");
                         return 1;
                     }
+
+                }else{
+
+                    printf("deny\n");
+
+                    if(libsandbox_syscall_deny(ctx_private)){
+                        printf("something went wrong\n");
+                        return 1;
+                    }
+
                 }
 
             }break;
