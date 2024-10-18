@@ -156,7 +156,7 @@ int main(int argc, char * * argv){
     printf("\n");
 
     struct libsandbox_rules rules;
-    libsandbox_rules_init(& rules, 1); // `1` stands for permissive, `0` for non-permissive // TODO make these into constants
+    libsandbox_rules_init(& rules, LIBSANDBOX_RULE_DEFAULT_PERMISSIVE);
     rules.networking_allow_all = net_on;
     rules.filesystem_allow_metadata = fs_meta_on;
 
