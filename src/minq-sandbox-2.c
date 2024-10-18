@@ -15,6 +15,8 @@
 #define ARGP_PATH_DENY "-pd:"
 #define ARGP_PATH_DENY_LEN strlen(ARGP_PATH_DENY)
 
+#define PATH_CAP 400
+
 //////
 ////// str related
 //////
@@ -23,58 +25,108 @@ int startswith(char * str, char * prefix, size_t prefix_len){
     return strncmp(prefix, str, prefix_len) == 0;
 }
 
-//////
-////// char arr
-//////
-// TODO should be called str arr
+int parent_contains_child_node(char * parent_node, size_t parent_node_len, char * child_node, size_t child_node_len){
 
-struct char_arr{
-    char * * data;
+    if(parent_node_len > child_node_len){
+        return 0;
+    }
+
+    size_t idx = 0;
+
+    for(; idx<parent_node_len; ++idx){
+
+        char ch_parent = parent_node[idx];
+        char ch_child = child_node[idx];
+
+        if(ch_parent != ch_child){
+            return 0;
+        }
+
+    }
+
+    char ch_child = child_node[idx];
+
+    if((ch_child == 0) || (ch_child == '/')){
+        return 1;
+    }
+
+    return 0;
+}
+
+//////
+////// path arr
+//////
+
+struct path_arr{
+    char * * path;
+    size_t * path_len;
     size_t cap;
     size_t len;
 };
 
-void char_arr_init(struct char_arr * arr){
-    arr->data = NULL;
+void path_arr_init(struct path_arr * arr){
+    arr->path = NULL;
+    arr->path_len = NULL;
     arr->cap = 0;
     arr->len = 0;
 }
 
-void char_arr_append(struct char_arr * arr, char * str){
+void path_arr_append(struct path_arr * arr, char * str){
+
     if(arr->len + 1 > arr->cap){
+
         arr->cap = (arr->len + 1) * 2;
-        arr->data = realloc(arr->data, sizeof(* arr->data) * arr->cap);
-        if(!arr->data){
+
+        arr->path = realloc(arr->path, sizeof(* arr->path) * arr->cap);
+
+        arr->path_len = realloc(arr->path_len, sizeof(* arr->path_len) * arr->cap);
+
+        if(!arr->path || !arr->path_len){
             printf("out of memory\n");
             exit(1);
         }
+
     }
 
-    arr->data[arr->len] = str;
-    // TODO we should copy the string rather than just copying the pointer
-    // also, there should be some kind of path processing function in libsandbox
+    char * path = malloc(PATH_CAP);
+
+    ssize_t path_len_or_err = libsandbox_str_to_path(str, path, PATH_CAP);
+
+    if(path_len_or_err < 0){
+        printf("`libsandbox_str_to_path` failure\n");
+        exit(1);
+    }
+
+    size_t path_len = path_len_or_err;
+
+    arr->path[arr->len] = path;
+    arr->path_len[arr->len] = path_len;
 
     arr->len += 1;
 }
 
-void char_arr_print(struct char_arr * arr){
-    printf("char_arr< ");
+void path_arr_print(struct path_arr * arr){
+    printf("path_arr< ");
     for(size_t idx=0; idx<arr->len; ++idx){
-        char * str = arr->data[idx];
-        printf("%ld:`%s` ", idx, str);
+        char * path = arr->path[idx];
+        printf("%ld:`%s` ", idx, path);
     }
     printf(">");
 }
 
-int char_arr_any_startswith(struct char_arr * arr, char * prefix, size_t prefix_len){
-    // TODO I think the function is fine, the problem is
-    // that it doesn't make sense in FS context the way it is
+int path_arr_parent_contains_child_node(struct path_arr * arr, char * child, size_t child_len){
+
     for(size_t idx=0; idx<arr->len; ++idx){
-        char * str = arr->data[idx];
-        if(startswith(str, prefix, prefix_len)){
+
+        char * parent = arr->path[idx];
+        size_t parent_len = arr->path_len[idx];
+
+        if(parent_contains_child_node(parent, parent_len, child, child_len)){
             return 1;
         }
+
     }
+
     return 0;
 }
 
@@ -93,11 +145,11 @@ int main(int argc, char * * argv){
     int arg_end_set = 0;
     int arg_end_idx = 0;
 
-    struct char_arr arr_path_allow;
-    char_arr_init(& arr_path_allow);
+    struct path_arr arr_path_allow;
+    path_arr_init(& arr_path_allow);
 
-    struct char_arr arr_path_deny;
-    char_arr_init(& arr_path_deny);
+    struct path_arr arr_path_deny;
+    path_arr_init(& arr_path_deny);
 
     for(int arg_idx=1; arg_idx<argc; ++arg_idx){
 
@@ -121,9 +173,9 @@ int main(int argc, char * * argv){
             break;
 
         }else if(startswith(arg, ARGP_PATH_ALLOW, ARGP_PATH_ALLOW_LEN)){
-            char_arr_append(& arr_path_allow, arg + ARGP_PATH_ALLOW_LEN);
+            path_arr_append(& arr_path_allow, arg + ARGP_PATH_ALLOW_LEN);
         }else if(startswith(arg, ARGP_PATH_DENY, ARGP_PATH_DENY_LEN)){
-            char_arr_append(& arr_path_deny, arg + ARGP_PATH_DENY_LEN);
+            path_arr_append(& arr_path_deny, arg + ARGP_PATH_DENY_LEN);
 
         }else{
             printf("unknown argument `%s`\n", arg);
@@ -148,11 +200,11 @@ int main(int argc, char * * argv){
     }
 
     printf("allowed paths: ");
-    char_arr_print(& arr_path_allow);
+    path_arr_print(& arr_path_allow);
     printf("\n");
 
     printf("denied paths: ");
-    char_arr_print(& arr_path_deny);
+    path_arr_print(& arr_path_deny);
     printf("\n");
 
     struct libsandbox_rules rules;
@@ -193,7 +245,7 @@ int main(int argc, char * * argv){
 
                 printf("attempt to access path `%s`\n", path0);
 
-                // if(char_arr_any_startswith(& arr_path_deny, )){
+                // if(path_arr_any_startswith(& arr_path_deny, )){
 
                 // }
 
