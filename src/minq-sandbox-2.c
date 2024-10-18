@@ -231,11 +231,13 @@ int main(int argc, char * * argv){
 
     size_t path_size = 400;
     char path0[path_size];
+    size_t path0_len = 0;
     char path1[path_size];
+    size_t path1_len = 0;
 
     for(int running = 1; running;){
 
-        switch(libsandbox_next_syscall(ctx_private, & summary, path_size, path0, path1)){
+        switch(libsandbox_next_syscall(ctx_private, & summary, path_size, path0, & path0_len, path1, & path1_len)){
 
             case LIBSANDBOX_RESULT_FINISHED:{
                 running = 0;
@@ -250,7 +252,7 @@ int main(int argc, char * * argv){
 
                 printf("attempt to access path `%s`\n", path0);
 
-                if(path_is_allowed(& arr_path_allow, & arr_path_deny, path0, strlen(path0))){ // TODO this `strlen` sucks
+                if(path_is_allowed(& arr_path_allow, & arr_path_deny, path0, path0_len)){
 
                     printf("allow\n");
 
@@ -277,9 +279,9 @@ int main(int argc, char * * argv){
                 printf("attempt to access paths `%s` and `%s`\n", path0, path1);
 
                 if(
-                    path_is_allowed(& arr_path_allow, & arr_path_deny, path0, strlen(path0)) // TODO this `strlen` sucks
+                    path_is_allowed(& arr_path_allow, & arr_path_deny, path0, path0_len)
                     &&
-                    path_is_allowed(& arr_path_allow, & arr_path_deny, path0, strlen(path1)) // TODO this `strlen` sucks
+                    path_is_allowed(& arr_path_allow, & arr_path_deny, path0, path1_len)
                 ){
 
                     printf("allow\n");
