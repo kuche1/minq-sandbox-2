@@ -276,9 +276,28 @@ int main(int argc, char * * argv){
 
                 printf("attempt to access paths `%s` and `%s`\n", path0, path1);
 
-                if(libsandbox_syscall_allow(ctx_private)){
-                    printf("something went wrong\n");
-                    return 1;
+                if(
+                    path_is_allowed(& arr_path_allow, & arr_path_deny, path0, strlen(path0)) // TODO this `strlen` sucks
+                    &&
+                    path_is_allowed(& arr_path_allow, & arr_path_deny, path0, strlen(path1)) // TODO this `strlen` sucks
+                ){
+
+                    printf("allow\n");
+
+                    if(libsandbox_syscall_allow(ctx_private)){
+                        printf("something went wrong\n");
+                        return 1;
+                    }
+
+                }else{
+
+                    printf("deny\n");
+
+                    if(libsandbox_syscall_deny(ctx_private)){
+                        printf("something went wrong\n");
+                        return 1;
+                    }
+
                 }
 
             }break;
