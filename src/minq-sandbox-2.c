@@ -208,7 +208,7 @@ int main(int argc, char * * argv){
     printf("\n");
 
     struct libsandbox_rules rules;
-    libsandbox_rules_init(& rules, LIBSANDBOX_RULE_DEFAULT_PERMISSIVE);
+    libsandbox_rules_init(& rules, LIBSANDBOX_RULE_DEFAULT_RESTRICTIVE);
     rules.networking_allow_all = net_on;
     rules.filesystem_allow_metadata = fs_meta_on;
 
@@ -245,13 +245,16 @@ int main(int argc, char * * argv){
 
                 printf("attempt to access path `%s`\n", path0);
 
-                // if(path_arr_any_startswith(& arr_path_deny, )){
-
-                // }
-
-                if(libsandbox_syscall_allow(ctx_private)){
-                    printf("something went wrong\n");
-                    return 1;
+                if(path_arr_parent_contains_child_node(& arr_path_deny, path0, strlen(path0))){ // TODO this `strlen` sucks
+                    if(libsandbox_syscall_deny(ctx_private)){
+                        printf("something went wrong\n");
+                        return 1;
+                    }
+                }else{
+                    if(libsandbox_syscall_allow(ctx_private)){
+                        printf("something went wrong\n");
+                        return 1;
+                    }
                 }
 
             }break;
