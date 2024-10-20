@@ -276,7 +276,7 @@ int main(int argc, char * * argv){
 
                 if(path_is_allowed(default_mode, & arr_path_allow, & arr_path_deny, path0, path0_len)){
 
-                    printf("permit `%s`\n", path0);
+                    printf("ms2:P %s\n", path0);
 
                     if(libsandbox_syscall_allow(ctx_private)){
                         printf("something went wrong\n");
@@ -285,7 +285,7 @@ int main(int argc, char * * argv){
 
                 }else{
 
-                    printf("deny `%s`\n", path0);
+                    printf("ms2:D %s\n", path0);
 
                     if(libsandbox_syscall_deny(ctx_private)){
                         printf("something went wrong\n");
@@ -298,22 +298,33 @@ int main(int argc, char * * argv){
 
             case LIBSANDBOX_RESULT_ACCESS_ATTEMPT_PATH0_PATH1:{
 
-                if(
-                    path_is_allowed(default_mode, & arr_path_allow, & arr_path_deny, path0, path0_len)
-                    &&
-                    path_is_allowed(default_mode, & arr_path_allow, & arr_path_deny, path0, path1_len)
-                ){
+                if(path_is_allowed(default_mode, & arr_path_allow, & arr_path_deny, path0, path0_len)){
 
-                    printf("permit `%s` and `%s`\n", path0, path1);
+                    printf("ms2:P %s\n", path0);
 
-                    if(libsandbox_syscall_allow(ctx_private)){
-                        printf("something went wrong\n");
-                        return 1;
+                    if(path_is_allowed(default_mode, & arr_path_allow, & arr_path_deny, path1, path1_len)){
+
+                        printf("ms2:P %s\n", path1);
+
+                        if(libsandbox_syscall_allow(ctx_private)){
+                            printf("something went wrong\n");
+                            return 1;
+                        }
+
+                    }else{
+
+                        printf("ms2:D %s\n", path1);
+
+                        if(libsandbox_syscall_deny(ctx_private)){
+                            printf("something went wrong\n");
+                            return 1;
+                        }
+
                     }
 
                 }else{
 
-                    printf("deny `%s` and `%s`\n", path0, path1);
+                    printf("ms2:D %s\n", path0);
 
                     if(libsandbox_syscall_deny(ctx_private)){
                         printf("something went wrong\n");
