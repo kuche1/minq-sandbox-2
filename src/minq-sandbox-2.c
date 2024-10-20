@@ -9,6 +9,8 @@
 #define ARG_NET_OFF "--net-off"
 #define ARG_FS_META_ON "--fs-meta-on"
 #define ARG_FS_META_OFF "--fs-meta-off"
+#define ARG_DEFAULT_MODE_PERMISSIVE "--default-mode-permissive"
+#define ARG_DEFAULT_MODE_RESTRICTIVE "--default-mode-restrictive"
 #define ARG_END "--"
 #define ARGP_PATH_ALLOW "-pa:"
 #define ARGP_PATH_ALLOW_LEN strlen(ARGP_PATH_ALLOW)
@@ -134,21 +136,32 @@ int path_arr_contains_child_node(struct path_arr * arr, char * child, size_t chi
 ////// main/related
 //////
 
-int path_is_allowed(__attribute__((unused)) struct path_arr * arr_path_allow, struct path_arr * arr_path_deny, char * path, size_t path_len){
-    // TODO add a flag for default mode (so that `arr_path_allow` is used)
-    return !path_arr_contains_child_node(arr_path_deny, path, path_len);
+int path_is_allowed(enum libsandbox_rule_default default_mode, struct path_arr * arr_path_allow, struct path_arr * arr_path_deny, char * path, size_t path_len){
+
+    if(path_arr_contains_child_node(arr_path_deny, path, path_len)){
+        return 0;
+    }
+
+    if(default_mode == LIBSANDBOX_RULE_DEFAULT_RESTRICTIVE){
+        return path_arr_contains_child_node(arr_path_allow, path, path_len);
+    }else{
+        return 1;
+    }
 }
 
 int main(int argc, char * * argv){
 
     int net_set = 0;
-    int net_on = 0;
+    int net_on;
 
     int fs_meta_set = 0;
-    int fs_meta_on = 0;
+    int fs_meta_on;
+
+    int default_mode_set = 0;
+    enum libsandbox_rule_default default_mode;
 
     int arg_end_set = 0;
-    int arg_end_idx = 0;
+    int arg_end_idx;
 
     struct path_arr arr_path_allow;
     path_arr_init(& arr_path_allow);
@@ -172,6 +185,12 @@ int main(int argc, char * * argv){
         }else if(strcmp(arg, ARG_FS_META_OFF) == 0){
             fs_meta_on = 0;
             fs_meta_set = 1;
+        }else if(strcmp(arg, ARG_DEFAULT_MODE_PERMISSIVE) == 0){
+            default_mode_set = 1;
+            default_mode = LIBSANDBOX_RULE_DEFAULT_PERMISSIVE;
+        }else if(strcmp(arg, ARG_DEFAULT_MODE_RESTRICTIVE) == 0){
+            default_mode_set = 1;
+            default_mode = LIBSANDBOX_RULE_DEFAULT_RESTRICTIVE;
         }else if(strcmp(arg, ARG_END) == 0){
             arg_end_idx = arg_idx;
             arg_end_set = 1;
@@ -199,6 +218,11 @@ int main(int argc, char * * argv){
         return 1;
     }
 
+    if(!default_mode_set){
+        printf("you need to set the default mode, use either `%s` or `%s`\n", ARG_DEFAULT_MODE_PERMISSIVE, ARG_DEFAULT_MODE_RESTRICTIVE);
+        return 1;
+    }
+
     if(!arg_end_set){
         printf("you need signify the end of the cmdline arguments for `%s` and the beginning of the command that is to be executed with `%s`\n", argv[0], ARG_END);
         return 1;
@@ -213,7 +237,7 @@ int main(int argc, char * * argv){
     printf("\n");
 
     struct libsandbox_rules rules;
-    libsandbox_rules_init(& rules, LIBSANDBOX_RULE_DEFAULT_RESTRICTIVE);
+    libsandbox_rules_init(& rules, default_mode);
     rules.networking_allow_all = net_on;
     rules.filesystem_allow_metadata = fs_meta_on;
 
@@ -250,11 +274,9 @@ int main(int argc, char * * argv){
 
             case LIBSANDBOX_RESULT_ACCESS_ATTEMPT_PATH0:{
 
-                printf("attempt to access path `%s`\n", path0);
+                if(path_is_allowed(default_mode, & arr_path_allow, & arr_path_deny, path0, path0_len)){
 
-                if(path_is_allowed(& arr_path_allow, & arr_path_deny, path0, path0_len)){
-
-                    printf("allow\n");
+                    printf("permit `%s`\n", path0);
 
                     if(libsandbox_syscall_allow(ctx_private)){
                         printf("something went wrong\n");
@@ -263,7 +285,7 @@ int main(int argc, char * * argv){
 
                 }else{
 
-                    printf("deny\n");
+                    printf("deny `%s`\n", path0);
 
                     if(libsandbox_syscall_deny(ctx_private)){
                         printf("something went wrong\n");
@@ -276,15 +298,13 @@ int main(int argc, char * * argv){
 
             case LIBSANDBOX_RESULT_ACCESS_ATTEMPT_PATH0_PATH1:{
 
-                printf("attempt to access paths `%s` and `%s`\n", path0, path1);
-
                 if(
-                    path_is_allowed(& arr_path_allow, & arr_path_deny, path0, path0_len)
+                    path_is_allowed(default_mode, & arr_path_allow, & arr_path_deny, path0, path0_len)
                     &&
-                    path_is_allowed(& arr_path_allow, & arr_path_deny, path0, path1_len)
+                    path_is_allowed(default_mode, & arr_path_allow, & arr_path_deny, path0, path1_len)
                 ){
 
-                    printf("allow\n");
+                    printf("permit `%s` and `%s`\n", path0, path1);
 
                     if(libsandbox_syscall_allow(ctx_private)){
                         printf("something went wrong\n");
@@ -293,7 +313,7 @@ int main(int argc, char * * argv){
 
                 }else{
 
-                    printf("deny\n");
+                    printf("deny `%s` and `%s`\n", path0, path1);
 
                     if(libsandbox_syscall_deny(ctx_private)){
                         printf("something went wrong\n");
